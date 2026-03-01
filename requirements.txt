@@ -1,0 +1,6 @@
+pyTelegramBotAPI
+fastapi
+uvicorn
+psycopg2-binary
+python-dotenv
+pandas
