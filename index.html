@@ -54,6 +54,7 @@
             padding: 16px;
             border-radius: 12px;
             margin-bottom: 16px;
+            height: 300px;
         }
         
         .details-table {
@@ -167,40 +168,32 @@
             document.getElementById('error').style.display = 'none';
             
             try {
-                // Пробуем localhost и реальный IP
-                const endpoints = [
-                    'http://localhost:8000/api/data',
-                    `http://${window.location.hostname}:8000/api/data`,
-                    'http://192.168.3.100:8000/api/data'  // замените на ваш IP
-                ];
+                // Загружаем данные с GitHub Pages
+                const statsUrl = 'https://pablochikone.github.io/telegram-mini-app/stats.json';
+                const response = await fetch(statsUrl);
                 
-                let response = null;
-                for (let endpoint of endpoints) {
-                    try {
-                        response = await fetch(endpoint);
-                        if (response.ok) break;
-                    } catch(e) { continue; }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                if (!response || !response.ok) {
-                    throw new Error('Не удалось подключиться к серверу');
-                }
+                const data = await response.json();
+                console.log('Данные загружены:', data);
                 
-                const result = await response.json();
-                if (result.status === 'ok' && result.data) {
-                    fullData = result.data;
+                if (data && data.periods && data.chart_data) {
+                    fullData = data;
                     updateUI();
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('content').style.display = 'block';
                 } else {
-                    throw new Error('Некорректные данные');
+                    throw new Error('Некорректный формат данных');
                 }
             } catch (error) {
+                console.error('Ошибка загрузки:', error);
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
                 document.getElementById('error').innerHTML = `
                     <strong>❌ Нет связи с сервером</strong><br>
-                    Проверьте, запущен ли Python скрипт<br>
+                    Данные не загружены<br>
                     <small>${error.message}</small>
                 `;
             }
@@ -217,7 +210,7 @@
             for (let [period, data] of Object.entries(fullData.periods)) {
                 const valueEl = document.getElementById(`${period}-value`);
                 if (valueEl) {
-                    valueEl.textContent = data.total.toLocaleString();
+                    valueEl.textContent = data.total.toLocaleString('ru-RU');
                 }
                 
                 if (period === 'all') {
@@ -252,7 +245,7 @@
             chartData.slice(-20).reverse().forEach(item => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = item.date;
-                row.insertCell().textContent = item.value.toLocaleString();
+                row.insertCell().textContent = item.value.toLocaleString('ru-RU');
             });
         }
         
@@ -281,7 +274,14 @@
                         legend: { display: false }
                     },
                     scales: {
-                        y: { beginAtZero: true }
+                        y: { 
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('ru-RU');
+                                }
+                            }
+                        }
                     }
                 }
             });
@@ -298,7 +298,7 @@
                 }
             });
             
-            // Можно добавить логику фильтрации графика по периоду
+            // Здесь можно добавить фильтрацию графика по периоду
             // Пока просто показываем все данные
         }
         
