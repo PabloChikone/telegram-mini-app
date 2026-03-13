@@ -43,7 +43,7 @@
             box-shadow: 0 0 0 2px var(--tg-theme-text-color, black);
         }
         .stat-card.inactive {
-            opacity: 0.5;
+            opacity: 0.7;
         }
         .stat-label { font-size: 12px; margin-bottom: 4px; }
         .stat-value { font-size: 18px; }
@@ -162,13 +162,55 @@
         let fullData = null;
         let currentPeriod = 'month';
         
+        // Функция для получения дат за период
+        function getDateRange(period) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            switch(period) {
+                case 'today':
+                    return { start: today, end: today };
+                case 'week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 7);
+                    return { start: weekAgo, end: today };
+                case 'month':
+                    const monthAgo = new Date(today);
+                    monthAgo.setMonth(today.getMonth() - 1);
+                    return { start: monthAgo, end: today };
+                case 'quarter':
+                    const quarterAgo = new Date(today);
+                    quarterAgo.setMonth(today.getMonth() - 3);
+                    return { start: quarterAgo, end: today };
+                case 'year':
+                    const yearAgo = new Date(today);
+                    yearAgo.setFullYear(today.getFullYear() - 1);
+                    return { start: yearAgo, end: today };
+                case 'all':
+                default:
+                    return { start: null, end: today };
+            }
+        }
+        
+        // Фильтрация данных по периоду
+        function filterDataByPeriod(data, period) {
+            if (!data || !data.length) return [];
+            
+            const range = getDateRange(period);
+            if (!range.start) return data; // all period - все данные
+            
+            return data.filter(item => {
+                const itemDate = new Date(item.date);
+                return itemDate >= range.start && itemDate <= range.end;
+            });
+        }
+        
         async function loadData() {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('content').style.display = 'none';
             document.getElementById('error').style.display = 'none';
             
             try {
-                // Загружаем данные с GitHub Pages
                 const statsUrl = 'https://pablochikone.github.io/telegram-mini-app/stats.json';
                 const response = await fetch(statsUrl);
                 
@@ -222,11 +264,8 @@
                 }
             }
             
-            // Обновляем таблицу
-            updateTable(fullData.chart_data);
-            
-            // Обновляем график
-            updateChart(fullData.chart_data);
+            // Обновляем график и таблицу с учетом текущего периода
+            updateChartAndTable(currentPeriod);
             
             // Подсвечиваем активный период
             document.querySelectorAll('.stat-card').forEach(card => {
@@ -237,12 +276,35 @@
             });
         }
         
+        function updateChartAndTable(period) {
+            if (!fullData || !fullData.chart_data) return;
+            
+            // Фильтруем данные по периоду
+            const filteredData = filterDataByPeriod(fullData.chart_data, period);
+            
+            // Обновляем таблицу отфильтрованными данными
+            updateTable(filteredData);
+            
+            // Обновляем график отфильтрованными данными
+            updateChart(filteredData);
+        }
+        
         function updateTable(chartData) {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
             
-            // Показываем последние 20 записей
-            chartData.slice(-20).reverse().forEach(item => {
+            if (!chartData || chartData.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 2;
+                cell.textContent = 'Нет данных за выбранный период';
+                cell.style.textAlign = 'center';
+                return;
+            }
+            
+            // Показываем последние 20 записей (или все, если меньше)
+            const dataToShow = chartData.slice(-20).reverse();
+            dataToShow.forEach(item => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = item.date;
                 row.insertCell().textContent = item.value.toLocaleString('ru-RU');
@@ -254,6 +316,30 @@
             
             if (chart) chart.destroy();
             
+            if (!chartData || chartData.length === 0) {
+                // Показываем пустой график с сообщением
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Нет данных'],
+                        datasets: [{
+                            label: 'Успешные ТМК',
+                            data: [0],
+                            borderColor: '#3390ec',
+                            backgroundColor: 'rgba(51, 144, 236, 0.1)',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+                return;
+            }
+            
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -264,14 +350,23 @@
                         borderColor: '#3390ec',
                         backgroundColor: 'rgba(51, 144, 236, 0.1)',
                         tension: 0.1,
-                        fill: true
+                        fill: true,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Кол-во: ${context.raw.toLocaleString('ru-RU')}`;
+                                }
+                            }
+                        }
                     },
                     scales: {
                         y: { 
@@ -280,6 +375,13 @@
                                 callback: function(value) {
                                     return value.toLocaleString('ru-RU');
                                 }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                maxTicksLimit: 10
                             }
                         }
                     }
@@ -298,8 +400,8 @@
                 }
             });
             
-            // Здесь можно добавить фильтрацию графика по периоду
-            // Пока просто показываем все данные
+            // Обновляем график и таблицу для выбранного периода
+            updateChartAndTable(period);
         }
         
         // Загружаем данные при старте
