@@ -42,11 +42,8 @@
             opacity: 1;
             box-shadow: 0 0 0 2px var(--tg-theme-text-color, black);
         }
-        .stat-card.inactive {
-            opacity: 0.7;
-        }
         .stat-label { font-size: 12px; margin-bottom: 4px; }
-        .stat-value { font-size: 18px; }
+        .stat-value { font-size: 18px; font-weight: bold; }
         .stat-small { font-size: 11px; opacity: 0.9; margin-top: 4px; }
         
         .chart-container {
@@ -162,33 +159,33 @@
         let fullData = null;
         let currentPeriod = 'month';
         
-        // Функция для получения дат за период
-        function getDateRange(period) {
+        // Получение даты начала периода
+        function getStartDate(period) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
             switch(period) {
                 case 'today':
-                    return { start: today, end: today };
+                    return today;
                 case 'week':
                     const weekAgo = new Date(today);
                     weekAgo.setDate(today.getDate() - 7);
-                    return { start: weekAgo, end: today };
+                    return weekAgo;
                 case 'month':
                     const monthAgo = new Date(today);
                     monthAgo.setMonth(today.getMonth() - 1);
-                    return { start: monthAgo, end: today };
+                    return monthAgo;
                 case 'quarter':
                     const quarterAgo = new Date(today);
                     quarterAgo.setMonth(today.getMonth() - 3);
-                    return { start: quarterAgo, end: today };
+                    return quarterAgo;
                 case 'year':
                     const yearAgo = new Date(today);
                     yearAgo.setFullYear(today.getFullYear() - 1);
-                    return { start: yearAgo, end: today };
+                    return yearAgo;
                 case 'all':
                 default:
-                    return { start: null, end: today };
+                    return null;
             }
         }
         
@@ -196,12 +193,15 @@
         function filterDataByPeriod(data, period) {
             if (!data || !data.length) return [];
             
-            const range = getDateRange(period);
-            if (!range.start) return data; // all period - все данные
+            const startDate = getStartDate(period);
             
+            // Для периода "all" возвращаем все данные
+            if (!startDate) return data;
+            
+            // Фильтруем данные, где дата >= startDate
             return data.filter(item => {
                 const itemDate = new Date(item.date);
-                return itemDate >= range.start && itemDate <= range.end;
+                return itemDate >= startDate;
             });
         }
         
@@ -212,7 +212,7 @@
             
             try {
                 const statsUrl = 'https://pablochikone.github.io/telegram-mini-app/stats.json';
-                const response = await fetch(statsUrl);
+                const response = await fetch(statsUrl + '?t=' + Date.now()); // Кеш
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -264,7 +264,7 @@
                 }
             }
             
-            // Обновляем график и таблицу с учетом текущего периода
+            // Обновляем график и таблицу
             updateChartAndTable(currentPeriod);
             
             // Подсвечиваем активный период
@@ -279,13 +279,16 @@
         function updateChartAndTable(period) {
             if (!fullData || !fullData.chart_data) return;
             
-            // Фильтруем данные по периоду
-            const filteredData = filterDataByPeriod(fullData.chart_data, period);
+            console.log('Обновление для периода:', period);
             
-            // Обновляем таблицу отфильтрованными данными
+            // Фильтруем данные
+            const filteredData = filterDataByPeriod(fullData.chart_data, period);
+            console.log('Отфильтровано записей:', filteredData.length);
+            
+            // Обновляем таблицу
             updateTable(filteredData);
             
-            // Обновляем график отфильтрованными данными
+            // Обновляем график
             updateChart(filteredData);
         }
         
@@ -302,9 +305,8 @@
                 return;
             }
             
-            // Показываем последние 20 записей (или все, если меньше)
-            const dataToShow = chartData.slice(-20).reverse();
-            dataToShow.forEach(item => {
+            // Показываем все данные за период
+            chartData.slice().reverse().forEach(item => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = item.date;
                 row.insertCell().textContent = item.value.toLocaleString('ru-RU');
@@ -317,7 +319,7 @@
             if (chart) chart.destroy();
             
             if (!chartData || chartData.length === 0) {
-                // Показываем пустой график с сообщением
+                // Пустой график
                 chart = new Chart(ctx, {
                     type: 'line',
                     data: {
@@ -332,9 +334,7 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        }
+                        plugins: { legend: { display: false } }
                     }
                 });
                 return;
@@ -390,6 +390,7 @@
         }
         
         function setPeriod(period) {
+            console.log('Выбран период:', period);
             currentPeriod = period;
             
             // Подсвечиваем кнопку
@@ -400,7 +401,7 @@
                 }
             });
             
-            // Обновляем график и таблицу для выбранного периода
+            // Обновляем график и таблицу
             updateChartAndTable(period);
         }
         
