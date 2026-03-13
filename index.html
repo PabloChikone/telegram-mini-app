@@ -3,160 +3,310 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI Dashboard MAX</title>
-    <!-- Telegram SDK -->
+    <title>TMK Дашборд</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Chart.js для графиков -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--tg-theme-bg-color, #f5f5f7);
-            color: var(--tg-theme-text-color, #000);
-            margin: 0;
-            padding: 20px;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--tg-theme-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #222);
+            padding: 16px;
         }
-        .card {
-            background: var(--tg-theme-secondary-bg-color, #fff);
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { 
+            background: var(--tg-theme-secondary-bg-color, #e0e0e0);
+            padding: 16px;
             border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+            text-align: center;
         }
-        h2 { margin-top: 0; font-size: 18px; color: var(--tg-theme-hint-color, #666); }
-        .stat-value { font-size: 24px; font-weight: bold; color: var(--tg-theme-button-color, #3390ec); }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, white);
+            padding: 12px 8px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .stat-card.active {
+            opacity: 1;
+            box-shadow: 0 0 0 2px var(--tg-theme-text-color, black);
+        }
+        .stat-card.inactive {
+            opacity: 0.5;
+        }
+        .stat-label { font-size: 12px; margin-bottom: 4px; }
+        .stat-value { font-size: 18px; }
+        .stat-small { font-size: 11px; opacity: 0.9; margin-top: 4px; }
         
-        /* Таблица */
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
-        th { color: var(--tg-theme-hint-color, #888); font-weight: normal; }
+        .chart-container {
+            background: var(--tg-theme-secondary-bg-color, #e0e0e0);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
         
-        /* Лоадер */
-        #loader { text-align: center; padding: 20px; color: #888; }
+        .details-table {
+            background: var(--tg-theme-secondary-bg-color, #e0e0e0);
+            padding: 16px;
+            border-radius: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        th { font-weight: 600; }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
-
-    <div class="card">
-        <h2>Статус системы</h2>
-        <div id="status-text" class="stat-value">Загрузка...</div>
-    </div>
-
-    <div class="card">
-        <h2>Динамика успешных ТМК (MAX)</h2>
-        <canvas id="tmkChart"></canvas>
-    </div>
-
-    <div class="card">
-        <h2>Детальные данные</h2>
-        <div style="overflow-x: auto;">
-            <table id="dataTable">
-                <thead>
-                    <tr>
-                        <th>Дата</th>
-                        <th>Кол-во</th>
-                        <th>Время</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Данные загрузятся сюда -->
-                </tbody>
-            </table>
+    <div class="container">
+        <div class="header">
+            <h2>📊 TMK Статистика</h2>
+            <div id="lastUpdate">Загрузка...</div>
+        </div>
+        
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="loading" class="loading">Загрузка данных...</div>
+        
+        <div id="content" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card" data-period="today" onclick="setPeriod('today')">
+                    <div class="stat-label">Сегодня</div>
+                    <div class="stat-value" id="today-value">-</div>
+                    <div class="stat-small" id="today-avg">ср. -</div>
+                </div>
+                <div class="stat-card" data-period="week" onclick="setPeriod('week')">
+                    <div class="stat-label">Неделя</div>
+                    <div class="stat-value" id="week-value">-</div>
+                    <div class="stat-small" id="week-avg">ср. -</div>
+                </div>
+                <div class="stat-card" data-period="month" onclick="setPeriod('month')">
+                    <div class="stat-label">Месяц</div>
+                    <div class="stat-value" id="month-value">-</div>
+                    <div class="stat-small" id="month-avg">ср. -</div>
+                </div>
+                <div class="stat-card" data-period="quarter" onclick="setPeriod('quarter')">
+                    <div class="stat-label">Квартал</div>
+                    <div class="stat-value" id="quarter-value">-</div>
+                    <div class="stat-small" id="quarter-avg">ср. -</div>
+                </div>
+                <div class="stat-card" data-period="year" onclick="setPeriod('year')">
+                    <div class="stat-label">Год</div>
+                    <div class="stat-value" id="year-value">-</div>
+                    <div class="stat-small" id="year-avg">ср. -</div>
+                </div>
+                <div class="stat-card" data-period="all" onclick="setPeriod('all')">
+                    <div class="stat-label">Всего</div>
+                    <div class="stat-value" id="all-value">-</div>
+                    <div class="stat-small" id="all-days">дней -</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="tmkChart"></canvas>
+            </div>
+            
+            <div class="details-table">
+                <h3>Детальные данные</h3>
+                <table id="data-table">
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Кол-во</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
         </div>
     </div>
-
-    <div id="loader">Подключение к серверу...</div>
-
+    
     <script>
-        const tg = window.Telegram.WebApp;
+        let tg = window.Telegram.WebApp;
         tg.expand();
-
-        // ВАЖНО: Сюда нужно будет вставить ссылку от ngrok после запуска
-        // Пока оставим заглушку, ты заменишь её в шаге 3
-        const API_URL = "https://diametrally-uncustomary-angelic.ngrok-free.dev/api/data"; 
-
-        async function fetchData() {
+        tg.ready();
+        
+        let chart = null;
+        let fullData = null;
+        let currentPeriod = 'month';
+        
+        async function loadData() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('content').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            
             try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error("Ошибка сети");
-                const result = await response.json();
+                // Пробуем localhost и реальный IP
+                const endpoints = [
+                    'http://localhost:8000/api/data',
+                    `http://${window.location.hostname}:8000/api/data`,
+                    'http://192.168.3.100:8000/api/data'  // замените на ваш IP
+                ];
                 
-                if (result.status === "ok") {
-                    renderDashboard(result.data);
+                let response = null;
+                for (let endpoint of endpoints) {
+                    try {
+                        response = await fetch(endpoint);
+                        if (response.ok) break;
+                    } catch(e) { continue; }
+                }
+                
+                if (!response || !response.ok) {
+                    throw new Error('Не удалось подключиться к серверу');
+                }
+                
+                const result = await response.json();
+                if (result.status === 'ok' && result.data) {
+                    fullData = result.data;
+                    updateUI();
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('content').style.display = 'block';
                 } else {
-                    document.getElementById('status-text').innerText = "Ошибка данных";
+                    throw new Error('Некорректные данные');
                 }
             } catch (error) {
-                console.error(error);
-                document.getElementById('status-text').innerText = "Нет связи с сервером";
-                document.getElementById('loader').innerText = "Проверь, запущен ли Python и ngrok";
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').innerHTML = `
+                    <strong>❌ Нет связи с сервером</strong><br>
+                    Проверьте, запущен ли Python скрипт<br>
+                    <small>${error.message}</small>
+                `;
             }
         }
-
-        function renderDashboard(data) {
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('status-text').innerText = "Данные актуальны";
-
-            // 1. Заполняем таблицу
-            const tbody = document.querySelector("#dataTable tbody");
-            let labels = [];
-            let values = [];
-            let times = [];
-
-            data.forEach(row => {
-                // Таблица
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row.date}</td>
-                    <td><b>${row.successful_tmk_count}</b></td>
-                    <td>${row.last_modified_time}</td>
-                `;
-                tbody.appendChild(tr);
-
-                // Данные для графика
-                labels.push(row.date.slice(5)); // Берем только ММ.ДД
-                values.push(row.successful_tmk_count);
-                times.push(row.last_modified_time);
+        
+        function updateUI() {
+            if (!fullData) return;
+            
+            // Обновляем дату
+            document.getElementById('lastUpdate').innerHTML = 
+                `Обновлено: ${fullData.last_updated}`;
+            
+            // Обновляем карточки
+            for (let [period, data] of Object.entries(fullData.periods)) {
+                const valueEl = document.getElementById(`${period}-value`);
+                if (valueEl) {
+                    valueEl.textContent = data.total.toLocaleString();
+                }
+                
+                if (period === 'all') {
+                    const daysEl = document.getElementById('all-days');
+                    if (daysEl) daysEl.textContent = `дней: ${data.days}`;
+                } else {
+                    const avgEl = document.getElementById(`${period}-avg`);
+                    if (avgEl) avgEl.textContent = `ср. ${data.avg}`;
+                }
+            }
+            
+            // Обновляем таблицу
+            updateTable(fullData.chart_data);
+            
+            // Обновляем график
+            updateChart(fullData.chart_data);
+            
+            // Подсвечиваем активный период
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.classList.remove('active');
+                if (card.dataset.period === currentPeriod) {
+                    card.classList.add('active');
+                }
             });
-
-            // 2. Рисуем график
+        }
+        
+        function updateTable(chartData) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            
+            // Показываем последние 20 записей
+            chartData.slice(-20).reverse().forEach(item => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = item.date;
+                row.insertCell().textContent = item.value.toLocaleString();
+            });
+        }
+        
+        function updateChart(chartData) {
             const ctx = document.getElementById('tmkChart').getContext('2d');
             
-            // Адаптируем цвета под тему Telegram
-            const chartColor = getComputedStyle(document.body).getPropertyValue('--tg-theme-button-color').trim() || '#3390ec';
-            const textColor = getComputedStyle(document.body).getPropertyValue('--tg-theme-text-color').trim() || '#000';
-
-            new Chart(ctx, {
-                type: 'bar',
+            if (chart) chart.destroy();
+            
+            chart = new Chart(ctx, {
+                type: 'line',
                 data: {
-                    labels: labels,
+                    labels: chartData.map(d => d.date),
                     datasets: [{
                         label: 'Успешные ТМК',
-                        data: values,
-                        backgroundColor: chartColor,
-                        borderRadius: 6,
+                        data: chartData.map(d => d.value),
+                        borderColor: '#3390ec',
+                        backgroundColor: 'rgba(51, 144, 236, 0.1)',
+                        tension: 0.1,
+                        fill: true
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: textColor }
-                        },
-                        x: {
-                            ticks: { color: textColor }
-                        }
+                        y: { beginAtZero: true }
                     }
                 }
             });
         }
-
-        fetchData();
-        tg.ready();
+        
+        function setPeriod(period) {
+            currentPeriod = period;
+            
+            // Подсвечиваем кнопку
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.classList.remove('active');
+                if (card.dataset.period === period) {
+                    card.classList.add('active');
+                }
+            });
+            
+            // Можно добавить логику фильтрации графика по периоду
+            // Пока просто показываем все данные
+        }
+        
+        // Загружаем данные при старте
+        loadData();
+        
+        // Обновляем каждые 5 минут
+        setInterval(loadData, 5 * 60 * 1000);
     </script>
 </body>
 </html>
