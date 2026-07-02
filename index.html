@@ -7,45 +7,34 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
             padding: 16px;
-            color: #333;
+            color: #1a1a2e;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+        .container { max-width: 800px; margin: 0 auto; }
+        
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
             text-align: center;
         }
-        .header h1 {
-            font-size: 20px;
-            margin-bottom: 4px;
-        }
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
+        .header h1 { font-size: 22px; margin-bottom: 4px; }
+        .header p { font-size: 13px; opacity: 0.9; }
+        
         .tabs {
             display: flex;
             gap: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             background: white;
-            padding: 8px;
+            padding: 6px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         .tab-btn {
             flex: 1;
@@ -64,13 +53,11 @@
             color: white;
             box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
-        .tab-btn:hover:not(.active) {
-            background: #f0f0f0;
-        }
+        
         .period-buttons {
             display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
+            gap: 6px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
         }
         .period-btn {
@@ -78,10 +65,11 @@
             border: 2px solid #e0e0e0;
             border-radius: 20px;
             background: white;
-            font-size: 13px;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.3s;
             color: #666;
+            font-weight: 500;
         }
         .period-btn.active {
             border-color: #667eea;
@@ -92,62 +80,99 @@
             border-color: #667eea;
             color: #667eea;
         }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .stat-card.active {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+        .stat-card .label {
+            font-size: 10px;
+            color: #999;
+            margin-bottom: 2px;
+            font-weight: 500;
+        }
+        .stat-card .value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a2e;
+            line-height: 1.2;
+        }
+        .stat-card .change {
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .stat-card .change.positive { color: #4CAF50; }
+        .stat-card .change.negative { color: #f44336; }
+        .stat-card .change.zero { color: #999; }
+        
         .chart-container {
             background: white;
             padding: 16px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             margin-bottom: 16px;
+            height: 350px;
             position: relative;
-            height: 400px;
         }
-        .chart-container canvas {
-            width: 100% !important;
-            height: 100% !important;
+        .chart-container canvas { width: 100% !important; height: 100% !important; }
+        
+        .status-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+            justify-content: center;
         }
-        .summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        .summary-card {
-            background: white;
-            padding: 16px;
+        .status-legend .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 4px 10px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            text-align: center;
+            background: white;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
-        .summary-card .label {
-            font-size: 12px;
-            color: #999;
-            margin-bottom: 4px;
+        .status-legend .legend-item.active {
+            border-color: #667eea;
+            background: #f0f2ff;
         }
-        .summary-card .value {
-            font-size: 20px;
-            font-weight: 700;
-            color: #333;
+        .status-legend .legend-item .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
         }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-        .error {
-            background: #fee;
-            color: #c00;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            text-align: center;
-        }
+        
+        .loading { text-align: center; padding: 40px; color: #999; }
+        .error { background: #fee; color: #c00; padding: 16px; border-radius: 8px; margin-bottom: 16px; text-align: center; }
+        
         @media (max-width: 600px) {
-            .summary {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .header h1 {
-                font-size: 17px;
-            }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-card .value { font-size: 16px; }
+            .period-btn { font-size: 11px; padding: 4px 12px; }
+            .tab-btn { font-size: 12px; padding: 8px; }
         }
     </style>
 </head>
@@ -163,14 +188,11 @@
             <button class="tab-btn" data-sheet="today">📊 Сегодня</button>
         </div>
 
-        <div class="period-buttons">
-            <button class="period-btn active" data-period="all">Все время</button>
-            <button class="period-btn" data-period="week">Неделя</button>
-            <button class="period-btn" data-period="day">День</button>
-            <button class="period-btn" data-period="hour">Час</button>
-        </div>
+        <div class="period-buttons" id="periodButtons"></div>
 
-        <div id="summaryContainer" class="summary"></div>
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="status-legend" id="statusLegend"></div>
 
         <div class="chart-container">
             <canvas id="statChart"></canvas>
@@ -184,15 +206,47 @@
         tg.ready();
 
         const JSON_URL = 'statistics.json';
+        let fullData = null;
         let currentSheet = 'year';
         let currentPeriod = 'all';
+        let selectedStatus = 'all';
         let chart = null;
-        let fullData = null;
 
-        // Инициализация
+        const STATUSES = {
+            '0 - Ожидает выгрузки': { label: '⏳ Ожидает', short: 'Ожидает' },
+            '1 - Отправлено в ЕГИСЗ': { label: '📤 Отправлено', short: 'Отправлено' },
+            '2 - Ошибка формирования': { label: '❌ Ошибка форм.', short: 'Ошибка форм.' },
+            '3 - Ошибка первичной валидации': { label: '⚠️ Ошибка валид.', short: 'Ошибка валид.' },
+            '4 - Документ принят успешно': { label: '✅ Принято', short: 'Принято' },
+            '5 - Документ отклонен ЕГИСЗ': { label: '🚫 Отклонено', short: 'Отклонено' }
+        };
+
+        const COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
+        const PERIODS_YEAR = ['month', 'week', 'day', 'hour'];
+        const PERIODS_TODAY = ['1h', '3h', '6h', '12h'];
+        const PERIOD_LABELS = {
+            'month': 'За месяц',
+            'week': 'За неделю',
+            'day': 'За день',
+            'hour': 'За час',
+            '1h': 'За 1 час',
+            '3h': 'За 3 часа',
+            '6h': 'За 6 часов',
+            '12h': 'За 12 часов'
+        };
+        const PERIOD_HOURS = {
+            'month': 720,
+            'week': 168,
+            'day': 24,
+            'hour': 1,
+            '1h': 1,
+            '3h': 3,
+            '6h': 6,
+            '12h': 12
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             setupTabs();
-            setupPeriodButtons();
             loadStatistics();
         });
 
@@ -202,41 +256,30 @@
                     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     currentSheet = this.dataset.sheet;
-                    updateChart();
-                });
-            });
-        }
-
-        function setupPeriodButtons() {
-            document.querySelectorAll('.period-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    currentPeriod = this.dataset.period;
-                    updateChart();
+                    currentPeriod = currentSheet === 'year' ? 'month' : '1h';
+                    selectedStatus = 'all';
+                    updateUI();
                 });
             });
         }
 
         async function loadStatistics() {
             showLoading(true);
-            
             try {
                 const response = await fetch(JSON_URL + '?t=' + Date.now());
-                if (!response.ok) {
-                    throw new Error('Не удалось загрузить данные');
-                }
-                
+                if (!response.ok) throw new Error('Не удалось загрузить данные');
                 fullData = await response.json();
                 
-                // Обновляем время
                 const updateTime = new Date(fullData.last_update);
+                // Добавляем +3 часа для Московского времени
+                updateTime.setHours(updateTime.getHours() + 3);
                 document.getElementById('updateTime').textContent = 
-                    `Обновлено: ${updateTime.toLocaleString()}`;
+                    `Обновлено: ${updateTime.toLocaleString('ru-RU')}`;
                 
-                updateChart();
+                currentPeriod = currentSheet === 'year' ? 'month' : '1h';
+                selectedStatus = 'all';
+                updateUI();
                 showError(null);
-                
             } catch (error) {
                 console.error('Error:', error);
                 showError('Ошибка загрузки данных');
@@ -245,115 +288,222 @@
             }
         }
 
-        function updateChart() {
+        function updateUI() {
             if (!fullData) return;
             
             const sheetData = fullData[currentSheet];
-            if (!sheetData) {
-                showError('Нет данных для отображения');
-                return;
-            }
+            if (!sheetData) { showError('Нет данных'); return; }
 
-            const filtered = filterData(sheetData, currentPeriod);
-            renderChart(filtered);
-            renderSummary(filtered);
+            const periodHours = PERIOD_HOURS[currentPeriod] || 999999;
+            const filtered = filterDataByHours(sheetData, periodHours);
+            const lastIndex = filtered.labels.length - 1;
+            
+            renderPeriodButtons();
+            renderStats(filtered, lastIndex);
+            renderStatusLegend();
+            renderChart(filtered, lastIndex);
         }
 
-        function filterData(sheetData, period) {
+        function filterDataByHours(sheetData, hours) {
             const labels = sheetData.labels;
             const data = sheetData.data;
             
-            if (period === 'all' || labels.length === 0) {
-                return { labels, data };
+            if (hours >= 999999 || labels.length === 0) {
+                return { labels, data, original_length: labels.length };
             }
             
-            // Определяем количество точек для фильтрации
-            let pointsToKeep;
-            const now = new Date();
-            
-            switch(period) {
-                case 'hour':
-                    pointsToKeep = 12; // 12 точек по 5 минут
-                    break;
-                case 'day':
-                    pointsToKeep = 288; // 288 точек по 5 минут
-                    break;
-                case 'week':
-                    pointsToKeep = 2016; // 2016 точек по 5 минут
-                    break;
-                default:
-                    pointsToKeep = labels.length;
-            }
-            
-            // Берем последние N точек
-            const startIndex = Math.max(0, labels.length - pointsToKeep);
+            // Находим ближайшую точку к заданному количеству часов
+            const targetPoints = Math.min(Math.floor(hours * 12), labels.length);
+            const startIndex = Math.max(0, labels.length - targetPoints);
             
             return {
                 labels: labels.slice(startIndex),
                 data: Object.fromEntries(
-                    Object.entries(data).map(([key, values]) => [
-                        key, 
-                        values.slice(startIndex)
-                    ])
-                )
+                    Object.entries(data).map(([key, values]) => [key, values.slice(startIndex)])
+                ),
+                original_length: labels.length
             };
         }
 
-        function renderChart(filtered) {
-            const ctx = document.getElementById('statChart').getContext('2d');
+        function getChange(current, previous) {
+            if (previous === undefined || previous === null) return { diff: 0, sign: 'zero' };
+            const diff = current - previous;
+            if (diff > 0) return { diff, sign: 'positive' };
+            if (diff < 0) return { diff, sign: 'negative' };
+            return { diff: 0, sign: 'zero' };
+        }
+
+        function renderPeriodButtons() {
+            const container = document.getElementById('periodButtons');
+            const periods = currentSheet === 'year' ? PERIODS_YEAR : PERIODS_TODAY;
             
-            if (chart) {
-                chart.destroy();
+            container.innerHTML = periods.map(p => `
+                <button class="period-btn ${p === currentPeriod ? 'active' : ''}" data-period="${p}">
+                    ${PERIOD_LABELS[p]}
+                </button>
+            `).join('');
+
+            container.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    container.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentPeriod = this.dataset.period;
+                    updateUI();
+                });
+            });
+        }
+
+        function renderStats(filtered, lastIndex) {
+            const container = document.getElementById('statsGrid');
+            if (lastIndex < 0) { container.innerHTML = '<div class="error">Нет данных</div>'; return; }
+
+            // Для разницы берем предыдущую точку
+            const prevIndex = Math.max(0, lastIndex - 1);
+            
+            let html = '';
+            for (const [key, values] of Object.entries(filtered.data)) {
+                if (!values || values.length === 0) continue;
+                const status = STATUSES[key];
+                if (!status) continue;
+                
+                const current = values[lastIndex] || 0;
+                const previous = values[prevIndex] || 0;
+                const change = getChange(current, previous);
+                
+                const changeText = change.sign === 'positive' ? `+${change.diff}` :
+                                  change.sign === 'negative' ? `${change.diff}` : '0';
+                const changeClass = change.sign === 'positive' ? 'positive' :
+                                   change.sign === 'negative' ? 'negative' : 'zero';
+                const isActive = selectedStatus === 'all' || selectedStatus === key;
+                
+                html += `
+                    <div class="stat-card ${isActive ? 'active' : ''}" data-status="${key}">
+                        <div class="label">${status.label}</div>
+                        <div class="value">${current.toLocaleString()}</div>
+                        <div class="change ${changeClass}">${changeText}</div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+
+            // Клик по карточке для выбора статуса
+            container.querySelectorAll('.stat-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const status = this.dataset.status;
+                    if (selectedStatus === status) {
+                        selectedStatus = 'all';
+                    } else {
+                        selectedStatus = status;
+                    }
+                    updateUI();
+                });
+            });
+        }
+
+        function renderStatusLegend() {
+            const container = document.getElementById('statusLegend');
+            const sheetData = fullData[currentSheet];
+            const statusKeys = Object.keys(sheetData.data);
+            
+            let html = '';
+            html += `<div class="legend-item ${selectedStatus === 'all' ? 'active' : ''}" data-status="all">
+                <span style="font-weight:600;font-size:12px;">Все статусы</span>
+            </div>`;
+            
+            statusKeys.forEach((key, idx) => {
+                const status = STATUSES[key];
+                if (!status) return;
+                const isActive = selectedStatus === key;
+                html += `
+                    <div class="legend-item ${isActive ? 'active' : ''}" data-status="${key}">
+                        <span class="color-dot" style="background:${COLORS[idx % COLORS.length]}"></span>
+                        <span>${status.short}</span>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+
+            container.querySelectorAll('.legend-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const status = this.dataset.status;
+                    selectedStatus = status === 'all' ? 'all' : status;
+                    updateUI();
+                });
+            });
+        }
+
+        function renderChart(filtered, lastIndex) {
+            const ctx = document.getElementById('statChart').getContext('2d');
+            if (chart) { chart.destroy(); }
+
+            if (filtered.labels.length < 2) {
+                showError('Недостаточно данных для графика');
+                return;
             }
 
-            if (!filtered.labels || filtered.labels.length === 0) {
+            const statusKeys = Object.keys(filtered.data);
+            let datasets = [];
+
+            if (selectedStatus === 'all') {
+                // Показываем все статусы
+                statusKeys.forEach((key, idx) => {
+                    const values = filtered.data[key];
+                    if (!values || values.length < 2) return;
+                    const status = STATUSES[key];
+                    datasets.push({
+                        label: status ? status.short : key,
+                        data: values,
+                        borderColor: COLORS[idx % COLORS.length],
+                        backgroundColor: COLORS[idx % COLORS.length] + '20',
+                        borderWidth: 2,
+                        pointRadius: 1,
+                        tension: 0.3,
+                        fill: false
+                    });
+                });
+            } else {
+                // Показываем только выбранный статус
+                const values = filtered.data[selectedStatus];
+                if (values && values.length >= 2) {
+                    const status = STATUSES[selectedStatus];
+                    datasets.push({
+                        label: status ? status.short : selectedStatus,
+                        data: values,
+                        borderColor: '#667eea',
+                        backgroundColor: '#667eea20',
+                        borderWidth: 3,
+                        pointRadius: 2,
+                        tension: 0.3,
+                        fill: true
+                    });
+                }
+            }
+
+            if (datasets.length === 0) {
                 showError('Нет данных для отображения');
                 return;
             }
 
-            const statusMap = {
-                '0 - Ожидает выгрузки': '⏳ Ожидает',
-                '1 - Отправлено в ЕГИСЗ': '📤 Отправлено',
-                '2 - Ошибка формирования': '❌ Ошибка форм.',
-                '3 - Ошибка первичной валидации': '⚠️ Ошибка валид.',
-                '4 - Документ принят успешно': '✅ Принято',
-                '5 - Документ отклонен ЕГИСЗ': '🚫 Отклонено'
-            };
-
-            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
-            
-            const datasets = Object.entries(filtered.data).map(([key, values], index) => ({
-                label: statusMap[key] || key,
-                data: values,
-                borderColor: colors[index % colors.length],
-                backgroundColor: colors[index % colors.length] + '40',
-                fill: false,
-                tension: 0.4,
-                pointRadius: 0,
-                borderWidth: 2
-            }));
+            // Находим min/max для Y轴
+            let allValues = [];
+            datasets.forEach(ds => { allValues = allValues.concat(ds.data); });
+            const minVal = Math.min(...allValues);
+            const maxVal = Math.max(...allValues);
+            const padding = (maxVal - minVal) * 0.1 || 1000;
 
             chart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: filtered.labels,
-                    datasets: datasets
-                },
+                data: { labels: filtered.labels, datasets: datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: {
                             position: 'top',
-                            labels: {
-                                font: { size: 10 },
-                                boxWidth: 12,
-                                padding: 8
-                            }
+                            labels: { font: { size: 10 }, boxWidth: 12, padding: 6 }
                         },
                         tooltip: {
                             callbacks: {
@@ -365,56 +515,24 @@
                     },
                     scales: {
                         y: {
-                            beginAtZero: true,
+                            min: Math.max(0, minVal - padding),
+                            max: maxVal + padding,
                             ticks: {
-                                callback: function(value) {
-                                    return value.toLocaleString();
-                                }
+                                callback: function(value) { return value.toLocaleString(); }
                             }
                         },
                         x: {
                             ticks: {
-                                maxTicksLimit: 20,
+                                maxTicksLimit: 15,
                                 autoSkip: true,
-                                maxRotation: 45
+                                maxRotation: 30
                             }
                         }
                     }
                 }
             });
-        }
-
-        function renderSummary(filtered) {
-            const container = document.getElementById('summaryContainer');
-            let html = '';
             
-            // Берем последние значения
-            const lastIndex = filtered.labels.length - 1;
-            if (lastIndex >= 0) {
-                const statusMap = {
-                    '0 - Ожидает выгрузки': '⏳ Ожидает',
-                    '1 - Отправлено в ЕГИСЗ': '📤 Отправлено',
-                    '2 - Ошибка формирования': '❌ Ошибка форм.',
-                    '3 - Ошибка первичной валидации': '⚠️ Ошибка валид.',
-                    '4 - Документ принят успешно': '✅ Принято',
-                    '5 - Документ отклонен ЕГИСЗ': '🚫 Отклонено'
-                };
-                
-                for (const [key, values] of Object.entries(filtered.data)) {
-                    if (values && values.length > 0) {
-                        const label = statusMap[key] || key;
-                        const value = values[lastIndex] || 0;
-                        html += `
-                            <div class="summary-card">
-                                <div class="label">${label}</div>
-                                <div class="value">${value.toLocaleString()}</div>
-                            </div>
-                        `;
-                    }
-                }
-            }
-            
-            container.innerHTML = html || '<div class="error">Нет данных для отображения</div>';
+            showError(null);
         }
 
         function showLoading(show) {
@@ -423,12 +541,8 @@
         }
 
         function showError(message) {
-            const container = document.getElementById('statusMessage');
-            if (message) {
-                container.innerHTML = `<div class="error">⚠️ ${message}</div>`;
-            } else {
-                container.innerHTML = '';
-            }
+            document.getElementById('statusMessage').innerHTML = message ? 
+                `<div class="error">⚠️ ${message}</div>` : '';
         }
 
         // Автообновление каждые 60 секунд
