@@ -277,9 +277,10 @@
             const data = sheetData.data;
             
             if (hours >= 999999 || labels.length === 0) {
-                return { labels, data };
+                return { labels, data, startIndex: 0 };
             }
             
+            // Находим ближайшую точку к заданному количеству часов
             const targetPoints = Math.min(Math.floor(hours * 12), labels.length);
             const startIndex = Math.max(0, labels.length - targetPoints);
             
@@ -287,7 +288,8 @@
                 labels: labels.slice(startIndex),
                 data: Object.fromEntries(
                     Object.entries(data).map(([key, values]) => [key, values.slice(startIndex)])
-                )
+                ),
+                startIndex: startIndex
             };
         }
 
@@ -318,7 +320,8 @@
                 return;
             }
 
-            const prevIndex = Math.max(0, lastIndex - 1);
+            // Берем первую точку в отфильтрованных данных (начало периода)
+            const startIndex = 0;
             const s = state[blockName];
             
             let html = '';
@@ -328,8 +331,8 @@
                 if (!status) continue;
                 
                 const current = values[lastIndex] || 0;
-                const previous = values[prevIndex] || 0;
-                const diff = current - previous;
+                const startValue = values[startIndex] || 0;
+                const diff = current - startValue;
                 
                 const diffText = diff > 0 ? `+${diff}` : (diff < 0 ? `${diff}` : '0');
                 const diffClass = diff > 0 ? 'positive' : (diff < 0 ? 'negative' : 'zero');
