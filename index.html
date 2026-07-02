@@ -197,7 +197,6 @@
         const JSON_URL = 'statistics.json';
         let fullData = null;
         
-        // Состояния для каждого блока
         const state = {
             year: { period: 'month', status: 'all', chart: null },
             today: { period: '1h', status: 'all', chart: null }
@@ -239,7 +238,6 @@
                 if (!response.ok) throw new Error('Не удалось загрузить данные');
                 fullData = await response.json();
                 
-                // Время без +3 (оставляем как в JSON)
                 const updateTime = new Date(fullData.last_update);
                 document.getElementById('updateTime').textContent = 
                     `Обновлено: ${updateTime.toLocaleString('ru-RU')}`;
@@ -262,23 +260,15 @@
             const prefix = blockName === 'year' ? 'Year' : 'Today';
             const periods = blockName === 'year' ? PERIODS_YEAR : PERIODS_TODAY;
             
-            // Находим количество часов для текущего периода
             const periodInfo = periods.find(p => p.id === s.period);
             const hours = periodInfo ? periodInfo.hours : 999999;
             
             const filtered = filterDataByHours(sheetData, hours);
             const lastIndex = filtered.labels.length - 1;
             
-            // Рендерим кнопки периодов
             renderPeriodButtons(prefix, periods, s.period, blockName);
-            
-            // Рендерим карточки статусов
             renderStats(prefix, filtered, lastIndex, blockName);
-            
-            // Рендерим легенду
             renderLegend(prefix, filtered, blockName);
-            
-            // Рендерим график
             renderChart(prefix, filtered, blockName);
         }
 
@@ -290,7 +280,6 @@
                 return { labels, data };
             }
             
-            // Находим ближайшую точку к заданному количеству часов
             const targetPoints = Math.min(Math.floor(hours * 12), labels.length);
             const startIndex = Math.max(0, labels.length - targetPoints);
             
@@ -317,8 +306,6 @@
                     const block = this.dataset.block;
                     const period = this.dataset.period;
                     state[block].period = period;
-                    
-                    // Обновляем только этот блок
                     renderBlock(block, fullData[block]);
                 });
             });
@@ -331,7 +318,6 @@
                 return;
             }
 
-            // Для разницы берем предыдущую точку
             const prevIndex = Math.max(0, lastIndex - 1);
             const s = state[blockName];
             
@@ -360,7 +346,6 @@
             
             container.innerHTML = html;
 
-            // Клик по карточке
             container.querySelectorAll('.stat-card').forEach(card => {
                 card.addEventListener('click', function() {
                     const block = this.dataset.block;
@@ -417,7 +402,6 @@
             const ctx = canvas.getContext('2d');
             const s = state[blockName];
             
-            // Удаляем старый график
             if (s.chart) {
                 s.chart.destroy();
                 s.chart = null;
@@ -465,7 +449,6 @@
 
             if (datasets.length === 0) return;
 
-            // Адаптивный масштаб
             let allValues = [];
             datasets.forEach(ds => { allValues = allValues.concat(ds.data); });
             const minVal = Math.min(...allValues);
@@ -524,7 +507,6 @@
                 `<div class="error">⚠️ ${message}</div>` : '';
         }
 
-        // Автообновление каждые 60 секунд
         setInterval(loadStatistics, 60000);
     </script>
 </body>
