@@ -1,1 +1,23 @@
-.env
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+convert.log
+
+# Backups
+*.backup
+
+# Data files (Excel)
+statistics_*.xlsx
+
+# Data directory (keep .gitkeep)
+data/
+!data/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
